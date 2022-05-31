@@ -18,7 +18,7 @@ dialog
 5. Enter entries for the following fields and press submit:
    - SID: 253 (or 255)
    - Service Name: SomaFM
-   - Endpoint URL: https://somafm-sonos.typetwo.space/main
+   - Endpoint URL: http://somafm-sonos.typetwo.space/main
    - Secure Endpoint URL: https://somafm-sonos.typetwo.space/main
    - Polling Interval: 60
    - Authentication SOAP header policy: Anonymous
