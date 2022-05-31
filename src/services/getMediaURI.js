@@ -8,9 +8,14 @@ const getMediaURI = (type, id, callback) => {
 
   if (!channel) return callback({ getMediaURIResult: '' });
 
+  const stream =
+    channel.playlists.find((x) => x.format === 'mp3' && x.quality === 'highest') ||
+    channel.playlists.find((x) => x.format === 'mp3');
+
+  if (!stream) return callback({ getMediaURIResult: '' });
+
   callback({
-    getMediaURIResult:
-      channel.playlists.find((x) => x.format === 'mp3' && x.quality === 'highest')?.url || '',
+    getMediaURIResult: stream.url || '',
   });
 };
 
