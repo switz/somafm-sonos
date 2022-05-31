@@ -18,12 +18,12 @@ dialog
 5. Enter entries for the following fields and press submit:
    - SID: 253 (or 255)
    - Service Name: SomaFM
-   - Endpoint URL: https://somafm-sonos.saewitz.com/mp3
-   - Secure Endpoint URL: https://somafm-sonos.saewitz.com/mp3
+   - Endpoint URL: https://somafm-sonos.typetwo.space/main
+   - Secure Endpoint URL: https://somafm-sonos.typetwo.space/main
    - Polling Interval: 60
    - Authentication SOAP header policy: Anonymous
-   - Strings table: Version: 1, Uri: https://somafm-sonos.saewitz.com/static/strings.xml
-   - Presentation Map: Version: 1, Uri: https://somafm-sonos.saewitz.com/static/presentationmap.xml
+   - Strings table: Version: 1, Uri: https://somafm-sonos.typetwo.space/static/strings.xml
+   - Presentation Map: Version: 1, Uri: https://somafm-sonos.typetwo.space/static/presentationmap.xml
    - Container Type: Music Service
    - Capabilities:    
          [x] Playback duration logging at track end    
