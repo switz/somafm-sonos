@@ -1,65 +1,32 @@
 const winston = require('../logger');
-const artistsCache = require('../lib/artistsCache');
-
-const API_ROOT = 'https://relistenapi.alecgorge.com/api/v2';
+const channelCache = require('../lib/channelCache');
 
 const getMediaMetadata = (type, id, callback) => {
-  const [, slug, year, date, sourceId, trackId] = id.match(/Track:(.*):(.*):(.*):(.*):(.*)/);
+  const [, channelId] = id.match(/Channel:(.*)/);
 
-  const artist = artistsCache[slug];
-  const artistName = artist ? artist.name : '';
+  const channel = channelCache[channelId];
 
-  fetch(`${API_ROOT}/artists/${slug}/years/${year}/${date}`)
-    .then((res) => res.json())
-    .then((json) => {
-      if (!json || !json.sources) {
-        winston.error('no SONG json tracks found', { slug, year, date, sourceId });
-        return callback({ getMediaURIResult: '' });
-      }
+  if (!channel) return callback({ getMediaMetadataResult: {} });
 
-      const source = json.sources.find((source) => `${source.id}` === sourceId);
+  // const id = `Channel:${channelId}`;
 
-      if (!source || !source.sets) {
-        winston.error('no SONG source found', { slug, year, date, sourceId });
-        return callback({ getMediaURIResult: '' });
-      }
-
-      let track;
-
-      source.sets.map((set) => {
-        const nextTrack = set.tracks.find((internalTrack) => `${internalTrack.id}` === trackId);
-
-        if (nextTrack) track = nextTrack;
-      });
-
-      if (!track) return callback({ getMediaMetadataResult: {} });
-      callback({
-        getMediaMetadataResult: {
-          id: id,
-          itemType: 'track',
-          title: track.title,
-          genre: '',
-          mimeType: type === 'flac' && track.flac_url ? 'audio/flac' : 'audio/mp3',
-          trackMetadata: {
-            albumId: `Show:${slug}:${year}:${date}:${sourceId}`,
-            duration: track.duration,
-            artistId: `Artist:${slug}`,
-            artist: artistName,
-            album: [`${json.display_date}`, json.venue ? json.venue.name : '']
-              .filter((x) => x)
-              .join(' '),
-            // albumArtURI: '',
-            canPlay: true,
-            canSkip: true,
-            canAddToFavorites: false,
-          },
-        },
-      });
-    })
-    .catch((err) => {
-      winston.error(err);
-      callback({});
-    });
+  callback({
+    getMediaMetadataResult: {
+      id,
+      itemType: 'stream',
+      mimeType: 'audio/x-mpegurl',
+      title: channel.title,
+      canPlay: true,
+      streamMetadata: {
+        logo: channel.xlimage,
+        currentShow: [channel.title, 'SomaFM'].join(' - '),
+        currentShowId: channel.id,
+        description: channel.description,
+        currentHost: channel.dj,
+        isEphemeral: false,
+      },
+    },
+  });
 };
 
 module.exports = (type) => (args, callback) => {

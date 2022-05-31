@@ -1,346 +1,51 @@
 const winston = require('../logger');
-const artistsCache = require('../lib/artistsCache');
-const { durationToHHMMSS, getRandomLatestRecordingString, sortTapes } = require('../lib/utils');
-const { rules } = require('eslint-plugin-prettier');
 
-const API_ROOT = 'https://api.relisten.net/api/v2';
-
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const ALBUM_ART_CDN = IS_PRODUCTION
-  ? 'https://sonos-cdn.relisten.net'
-  : 'http://192.168.0.101:3000';
-
-const artistWrapper = (name) => {
-  if (name === 'Phish') return 'Phish (by Phish.in)';
-  else if (name === 'Widespread Panic') return 'Widespread Panic (by PanicStream)';
-
-  return name;
-};
-
-const LATEST_TAPES = 'Latest Tapes';
+const API_ROOT = 'https://api.somafm.com/channels.json';
 
 const getRoot = (callback) => {
-  fetch(`${API_ROOT}/artists`)
+  fetch(API_ROOT, {
+    headers: { 'user-agent': 'somafm/0.1 (https://github.com/switz/somafm-sonos)' },
+  })
     .then((res) => res.json())
     .then((json) => {
-      const artists = json
-        .map((artist) => {
-          artistsCache[artist.slug] = artist;
+      const results = json.channels
+        .map((channel) => {
+          const id = `Channel:${channel.id}`;
+
           return {
-            id: `Artist:${artist.slug}`,
-            itemType: 'artist',
-            displayType: 'list-sans-thumbs',
-            title: artistWrapper(artist.name),
-            summary: artist.name,
-            canPlay: false,
-            // albumArtURI: ''
+            id,
+            itemType: 'stream',
+            mimeType: 'audio/x-mpegurl',
+            title: channel.title,
+            canPlay: true,
+            streamMetadata: {
+              logo: channel.xlimage,
+              currentShow: [channel.title, 'SomaFM'].join(' - '),
+              currentShowId: channel.id,
+              description: channel.description,
+              currentHost: channel.dj,
+              isEphemeral: false,
+            },
           };
         })
         .filter((x) => x);
 
-      const results = [
-        {
-          id: 'latest',
-          itemType: 'container',
-          displayType: 'list-sans-thumbs',
-          title: LATEST_TAPES,
-          summary: 'Latest recordings',
-          canPlay: false,
-          // albumArtURI: ''
-        },
-        ...artists,
-      ];
-
       callback({
         getMetadataResult: {
           index: 0,
           count: results.length,
           total: results.length,
-          mediaCollection: results,
+          mediaMetadata: results,
         },
       });
-    })
-    .catch((err) => {
-      winston.error(err);
-      return callback({});
     });
+  // .catch((err) => {
+  //   winston.error(err);
+  //   return callback({});
+  // });
 };
 
-const getLatest = (id, callback) => {
-  fetch(`${API_ROOT}/shows/recently-added`)
-    .then((res) => res.json())
-    .then((json) => {
-      const results = json.map((item) => {
-        return {
-          id: `Shows:${item.artist.slug}:${item.year.year}:${item.display_date}`,
-          itemType: 'container',
-          displayType: 'list-sans-thumbs',
-          title: [
-            (item.has_soundboard_source ? '[SBD]' : '[AUD]') + ' ' + item.artist &&
-              item.artist.name,
-            item.display_date,
-            item.venue && item.venue.name,
-            item.venue && item.venue.location,
-          ]
-            .filter((x) => x)
-            .join(' - '),
-          summary: [
-            (item.has_soundboard_source ? '[SBD]' : '[AUD]') + ' ' + item.artist &&
-              item.artist.name,
-            item.display_date,
-            item.venue && item.venue.name,
-            item.venue && item.venue.location,
-          ]
-            .filter((x) => x)
-            .join(' '),
-          canPlay: false,
-          // albumArtURI: ''
-        };
-      });
-
-      callback({
-        getMetadataResult: {
-          index: 0,
-          count: results.length,
-          total: results.length,
-          mediaCollection: results,
-        },
-      });
-    })
-    .catch((err) => {
-      winston.error(err);
-      return callback({});
-    });
-};
-
-const getYears = (id, callback) => {
-  const slug = id.replace('Artist:', '');
-
-  fetch(`${API_ROOT}/artists/${slug}/years`)
-    .then((res) => res.json())
-    .then((json) => {
-      const years = json.map((item) => {
-        return {
-          id: `Year:${slug}:${item.year}`,
-          itemType: 'container',
-          displayType: 'list-sans-thumbs',
-          title: item.year,
-          summary: item.year,
-          canPlay: false,
-          // albumArtURI: ''
-        };
-      });
-
-      const results = [
-        {
-          id: `Year:${slug}:latest`,
-          itemType: 'container',
-          displayType: 'list-sans-thumbs',
-          title: LATEST_TAPES,
-          summary: 'Most recent recordings',
-          canPlay: false,
-          // albumArtURI: ''
-        },
-        ...years,
-      ];
-
-      callback({
-        getMetadataResult: {
-          index: 0,
-          count: results.length,
-          total: results.length,
-          mediaCollection: results,
-        },
-      });
-    })
-    .catch((err) => {
-      winston.error(err);
-      return callback({});
-    });
-};
-
-const getShows = (id, callback) => {
-  const [regex, slug, year] = id.match(/Year:(.*):(.*)/);
-
-  let url = `${API_ROOT}/artists/${slug}/years/${year}`;
-
-  if (year === 'latest') {
-    url = `${API_ROOT}/artists/${slug}/shows/recently-added`;
-  }
-
-  fetch(url)
-    .then((res) => res.json())
-    .then((json) => {
-      if (!json) {
-        winston.error('error', { regex });
-        return callback({});
-      }
-
-      const arr = Array.isArray(json) ? json : json.shows;
-
-      const shows = arr.map((show) => {
-        return {
-          id: `Shows:${slug}:${year}:${show.display_date}`,
-          itemType: 'container',
-          displayType: 'list',
-          title:
-            [
-              (show.has_soundboard_source ? '[SBD]' : '[AUD]') + ' ' + show.display_date,
-              show.venue && show.venue.name,
-              show.venue && show.venue.location,
-            ]
-              .filter((x) => x)
-              .join(' - ') + ` [${show.source_count}]`,
-          summary: show.display_date,
-          canPlay: show.source_count === 1,
-          albumArtURI: `${ALBUM_ART_CDN}/album-art/${slug}/years/${year}/${show.display_date}/600.png`,
-        };
-      });
-
-      callback({
-        getMetadataResult: {
-          index: 0,
-          count: shows.length,
-          total: shows.length,
-          mediaCollection: shows,
-        },
-      });
-    })
-    .catch((err) => {
-      winston.error(err);
-      return callback({});
-    });
-};
-
-const getShow = (type, id, callback) => {
-  const [regex, slug, year, date] = id.match(/Shows:(.*):(.*):(.*)/);
-
-  fetch(`${API_ROOT}/artists/${slug}/years/${year}/${date}`)
-    .then((res) => res.json())
-    .then((json) => {
-      if (!json || !json.sources) {
-        winston.error('error', { regex });
-        return callback({});
-      }
-
-      // if (json.sources.length === 1) return getTracks(type, `Show:${slug}:${year}:${date}:${json.sources[0].id}`, callback);
-
-      if (slug === 'wsp' || slug === 'phish') {
-        return getTracks(type, `Show:${slug}:${year}:${date}:${json.sources[0].id}`, callback);
-      }
-
-      const sources = sortTapes(json.sources)
-        .filter((source) => (type === 'flac' ? source.flac_type !== 'Flac24Bit' : true))
-        .map((source) => {
-          const person = source.taper || source.transferrer;
-          const sourceTitle = source.source || source.lineage;
-
-          return {
-            id: `Show:${slug}:${year}:${date}:${source.id}`,
-            itemType: 'album',
-            displayType: 'list',
-            title: [
-              (source.is_soundboard ? '[SBD]' : '[AUD]') + ' ' + sourceTitle,
-              person ? `by ${person}` : null,
-              type === 'flac' &&
-                source.flac_type === 'Flac16Bit' &&
-                json.has_streamable_flac_source &&
-                '[FLAC]',
-            ]
-              .filter((x) => x)
-              .join(' '),
-            summary: source.description || '',
-            canPlay: true,
-            albumArtURI: `${ALBUM_ART_CDN}/album-art/${slug}/years/${year}/${date}/${json.sources[0].id}/600.png`,
-          };
-        });
-
-      callback({
-        getMetadataResult: {
-          index: 0,
-          count: sources.length,
-          total: sources.length,
-          mediaCollection: sources,
-        },
-      });
-    })
-    .catch((err) => {
-      winston.error(err);
-      return callback({});
-    });
-};
-
-const getTracks = (type, id, callback) => {
-  const [, slug, year, date, sourceId] = id.match(/Show:(.*):(.*):(.*):(.*)/);
-
-  const artist = artistsCache[slug];
-  const artistName = artist ? artist.name : '';
-
-  fetch(`${API_ROOT}/artists/${slug}/years/${year}/${date}`)
-    .then((res) => res.json())
-    .then((json) => {
-      if (!json || !json.sources) {
-        winston.error('no json tracks found', { slug, year, date, sourceId });
-        return callback({});
-      }
-
-      const source = json.sources.find((source) => `${source.id}` === sourceId);
-
-      if (!source || !source.sets) {
-        winston.error('no source found', { slug, year, date, sourceId });
-        return callback({});
-      }
-
-      let tracks = [];
-      let trackIdx = 0;
-
-      source.sets.map((set) => {
-        tracks = tracks.concat(
-          set.tracks.map((track) => {
-            const [year, month, day] = date.split('-');
-
-            return {
-              id: `Track:${slug}:${year}:${date}:${source.id}:${track.id}`,
-              itemType: 'track',
-              mimeType: type === 'flac' && track.flac_url ? 'audio/flac' : 'audio/mp3',
-              title: `${track.title} [${durationToHHMMSS(track.duration)}]`,
-              canPlay: true,
-              trackMetadata: {
-                albumId: id,
-                duration: track.duration,
-                artistId: `Artist:${slug}`,
-                artist: artistName,
-                albumArtURI: `${ALBUM_ART_CDN}/album-art/${slug}/years/${year}/${date}/${sourceId}/600.png`,
-                trackNumber: ++trackIdx,
-                album: [
-                  `${Number(month)}/${Number(day)}/${year.slice(2)}`,
-                  json.venue ? json.venue.name : '',
-                  json.venue ? json.venue.location : '',
-                ]
-                  .filter((x) => x)
-                  .join(' - '),
-              },
-            };
-          })
-        );
-      });
-
-      callback({
-        getMetadataResult: {
-          index: 0,
-          count: tracks.length,
-          total: tracks.length,
-          mediaMetadata: tracks,
-        },
-      });
-    })
-    .catch((err) => {
-      winston.error(err);
-      return callback({});
-    });
-};
-
-module.exports = (type) => (args, callback) => {
+module.exports = () => (args, callback) => {
   const id = args.id;
 
   winston.info('getMetadata', { id, args });
@@ -348,20 +53,5 @@ module.exports = (type) => (args, callback) => {
   if (id === 'root') {
     winston.I.increment('sonos.wsdl.getMetadata.root');
     return getRoot(callback);
-  } else if (id === 'latest') {
-    winston.I.increment('sonos.wsdl.getMetadata.Latest');
-    return getLatest(id, callback);
-  } else if (/Artist:/.test(id)) {
-    winston.I.increment('sonos.wsdl.getMetadata.Artist');
-    return getYears(id, callback);
-  } else if (/Year:/.test(id)) {
-    winston.I.increment('sonos.wsdl.getMetadata.Year');
-    return getShows(id, callback);
-  } else if (/Shows:/.test(id)) {
-    winston.I.increment('sonos.wsdl.getMetadata.Shows');
-    return getShow(type, id, callback);
-  } else if (/Show:/.test(id)) {
-    winston.I.increment('sonos.wsdl.getMetadata.Show');
-    return getTracks(type, id, callback);
   }
 };

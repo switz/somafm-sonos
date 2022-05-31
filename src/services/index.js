@@ -8,7 +8,7 @@ const services = (type = 'mp3') => {
         getLastUpdate: require('./getLastUpdate')(type),
         getMediaMetadata: require('./getMediaMetadata')(type),
         getMediaURI: require('./getMediaURI')(type),
-        search: require('./search')(type),
+        // search: require('./search')(type),
         reportPlayStatus: require('./reportPlayStatus')(type),
         reportPlaySeconds: require('./reportPlaySeconds')(type),
         setPlayedSeconds: require('./setPlayedSeconds')(type),

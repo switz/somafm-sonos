@@ -2,7 +2,7 @@ module.exports = {
   env: {
     node: true,
   },
-  extends: ['@switz/eslint-config'],
+  extends: ['@switz/eslint-config/node'],
   root: true,
   globals: {
     fetch: true,

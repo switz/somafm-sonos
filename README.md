@@ -1,12 +1,17 @@
-# Relisten for Sonos
-
-[![Build Status](https://ci.alecgorge.com/job/RelistenNet/job/relisten-sonos/job/master/badge/icon)](https://ci.alecgorge.com/job/RelistenNet/job/relisten-sonos/job/master/)
+# SomaFM for Sonos
 
 ## Introduction
 
-It's Relisten.net.. for Sonos.
+It's SomaFM.. for Sonos.
 
-Please contact team@relisten.net with your feedback. Thank you!
+Please contact daniel@saewitz.com with your feedback. Thank you!
+
+I threw this together in a few hours based on the Relisten for Sonos code.
+
+## TODO:
+
+- [ ] Update strings.xml to match SomaFM description
+- [ ] Remove 'type' variable from code
 
 ## Development
 
@@ -18,7 +23,7 @@ $ node server.js
 
 ## Sonos Setup
 
-https://gist.github.com/switz/02cc1f865356bdbba5f5213dab38cc63
+See SETUP.md
 
 ## License
 
