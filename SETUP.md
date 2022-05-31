@@ -32,10 +32,10 @@ dialog
 6. Upon success you should see the text "success!" displayed
 7. Return to your Sonos client application
 7a. Sonos may have automatically added the service.
-    Check in your home menu if "Relisten" exists.
+    Check in your home menu if "SomaFM" exists.
     If so, you can stop here and enjoy.
 8. Select Manage > Service Settings...
 9. Select Services, and click the Add button
-10. Under available services, select "Relisten" and click Next
+10. Under available services, select "SomaFM" and click Next
 11. Select "Setup now" or whatever bullshit
 12. You should see a confirmation
