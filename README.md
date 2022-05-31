@@ -25,6 +25,10 @@ $ node server.js
 
 See SETUP.md
 
+## Support SomaFM
+
+Please donate if you enjoy their service https://somafm.com/support
+
 ## License
 
 MIT
