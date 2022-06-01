@@ -14,7 +14,7 @@ const getMediaMetadata = (type, id, callback) => {
     getMediaMetadataResult: {
       id,
       itemType: 'stream',
-      mimeType: 'audio/x-mpegurl',
+      mimeType: 'audio/x-scpls',
       title: channel.title,
       canPlay: true,
       streamMetadata: {
